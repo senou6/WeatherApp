@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">WeatherApp</string>
+    <string name="email">Email</string>
+    <string name="hidepw">Hide Password\n</string>
+    <string name="showpw">Show Password</string>
+    <string name="password">Password</string>
+    <string name="repeatPassword">Repeat Password</string>
+</resources>
