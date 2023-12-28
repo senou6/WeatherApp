@@ -27,38 +27,39 @@ import pt.pedro.ccti.weatherapp.ui.theme.WeatherAppTheme
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    private val permissionResponseReceived = mutableStateOf(false)
-
     private val locationPermissionRequest = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
-        permissionResponseReceived.value = isGranted
+        showMainContent()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Request permission if not already granted
         if (!isPermissionGranted()) {
-            locationPermissionRequest.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+            requestLocationPermission()
+        } else {
+            showMainContent()
         }
+    }
 
-        // Set content based on permission status
+    private fun requestLocationPermission() {
+        locationPermissionRequest.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+    }
+
+    private fun showMainContent() {
         setContent {
-            if (permissionResponseReceived.value || isPermissionGranted()) {
+            WeatherAppTheme {
                 WeatherApp()
-            } else {
-                Loading()
             }
         }
     }
 
-    // Helper function to check permission
+
     private fun isPermissionGranted() = ContextCompat.checkSelfPermission(
         this,
         Manifest.permission.ACCESS_FINE_LOCATION
     ) == PackageManager.PERMISSION_GRANTED
-
 }
 
 @SuppressLint("MissingPermission")

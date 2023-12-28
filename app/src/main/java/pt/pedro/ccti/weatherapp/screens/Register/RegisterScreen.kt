@@ -72,7 +72,7 @@ fun RegisterScreen(navController: NavController, registerViewModel: RegisterView
 
             Button(onClick = {
                 registerViewModel.registerUser(email.value, password.value, repeatPassword.value,oContexto, {
-                    navController.navigate(WeatherScreens.LoginScreen.name)
+                    navController.navigate(WeatherScreens.HomeScreen.name)
                 }) { error ->
                     errorMessage.value = error
                 }

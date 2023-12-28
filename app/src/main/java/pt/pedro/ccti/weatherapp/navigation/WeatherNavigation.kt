@@ -9,6 +9,7 @@ import androidx.navigation.compose.rememberNavController
 import com.google.firebase.auth.FirebaseAuth
 import pt.pedro.ccti.weatherapp.components.UserScaffold
 import pt.pedro.ccti.weatherapp.screens.FavoriteLocations.FavoriteLocationsScreen
+import pt.pedro.ccti.weatherapp.screens.SearchedLocation.SearchedLocationScreen
 import pt.pedro.ccti.weatherapp.screens.homescreen.HomeScreen
 import pt.pedro.ccti.weatherapp.screens.homescreen.HomeViewModel
 import pt.pedro.ccti.weatherapp.screens.loginscreen.LoginScreen
@@ -31,28 +32,21 @@ fun WeatherNavigation() {
         navigation(startDestination = WeatherScreens.HomeScreen.name, route = "authenticated_graph") {
 
             composable(WeatherScreens.HomeScreen.name) {
-                UserScaffold(true,navController, WeatherScreens.HomeScreen.name) {
                     HomeScreen(navController = navController, homeViewModel)
-                }
             }
             composable(WeatherScreens.FavoriteLocationsScreen.name) {
                 UserScaffold(true,navController, WeatherScreens.FavoriteLocationsScreen.name) {
-                    FavoriteLocationsScreen()
-                }
-            }
-            composable(WeatherScreens.SettingsScreen.name) {
-                UserScaffold(true,navController, WeatherScreens.SettingsScreen.name) {
-                    //SettingsScreen(navController = navController)
-                }
-            }
-            composable(WeatherScreens.SearchScreen.name) {
-                UserScaffold(true,navController, WeatherScreens.SearchScreen.name) {
-                    SearchScreen(navController = navController)
+                    FavoriteLocationsScreen(navController)
                 }
             }
             composable(WeatherScreens.SearchScreen.name) {
                     SearchScreen(navController = navController)
             }
+            composable("${WeatherScreens.SearchedLocationScreen.name}/{query}") { backStackEntry ->
+                val query = backStackEntry.arguments?.getString("query") ?: ""
+                SearchedLocationScreen(navController = navController, query)
+            }
+
         }
 
         navigation(startDestination = WeatherScreens.MainScreen.name, route = "unauthenticated_graph") {
@@ -67,9 +61,7 @@ fun WeatherNavigation() {
                 }
             }
             composable(WeatherScreens.MainScreen.name) {
-                UserScaffold(false, navController, WeatherScreens.MainScreen.name) {
                     MainScreen(navController = navController)
-                }
             }
         }
     }

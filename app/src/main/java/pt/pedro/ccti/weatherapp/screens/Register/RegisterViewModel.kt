@@ -1,6 +1,7 @@
 package pt.pedro.ccti.weatherapp.screens.registerscreen
 
 import android.content.Context
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -9,21 +10,31 @@ import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import okhttp3.internal.wait
+import pt.pedro.ccti.weatherapp.data.DataOrException
 import pt.pedro.ccti.weatherapp.domain.location.LocationTracker
 import pt.pedro.ccti.weatherapp.domain.use_cases.LocationUtils
+import pt.pedro.ccti.weatherapp.model.Search.Search
 import pt.pedro.ccti.weatherapp.model.User.MUser
+import pt.pedro.ccti.weatherapp.repository.SearchRepository
 import javax.inject.Inject
 
 
 @HiltViewModel
 class RegisterViewModel @Inject constructor(
-    private val locationTracker: LocationTracker) : ViewModel() {
+    private val locationTracker: LocationTracker,
+    private val repository: SearchRepository,
+    private val firebaseAuth: FirebaseAuth,
+    private val firestore: FirebaseFirestore
+) : ViewModel() {
 
-    private val firebaseAuth: FirebaseAuth = FirebaseAuth.getInstance()
     var isLoading by mutableStateOf(false)
         private set
+
+    private val _searchData = MutableStateFlow("")
 
     fun registerUser(
         email: String,
@@ -31,8 +42,7 @@ class RegisterViewModel @Inject constructor(
         repeatPassword: String,
         context: Context,
         onSuccess: () -> Unit,
-        onError: (String) -> Unit,
-
+        onError: (String) -> Unit
     ) {
         if (!validateRegistrationInput(email, password, repeatPassword, onError)) return
 
@@ -51,14 +61,29 @@ class RegisterViewModel @Inject constructor(
         }
     }
 
+    suspend fun performSearch(context : Context) {
+        val location = LocationUtils.getAddressFromCoordinates(context, locationTracker)
+        try {
+            val result = repository.getSearchResults(stringQuery = location)
+            if (result.data?.isNotEmpty() == true) {
+                _searchData.value = "${result.data!![0].name},${result.data!![0].country},${result.data!![0].url}"
+
+            }
+        } catch (e: Exception) {
+            Log.e("Error", "performSearch: Error", e)
+        }
+    }
+
     private suspend fun createUser(displayName: String, context : Context) {
-        val location = LocationUtils.getAddressFromCoordinates(context,locationTracker)
-        val userId = firebaseAuth.currentUser?.uid
-        val user = MUser(userId = userId.toString(), username = displayName, principalLocaltion = location, favoriteLocations = listOf(), id = null).toMap()
+        performSearch(context)
+        val userId = firebaseAuth.currentUser?.uid ?: return
+        val user = MUser(userId = userId, username = displayName, favoriteLocations = listOf(_searchData.value), id = null).toMap()
 
-        FirebaseFirestore.getInstance().collection("users")
-            .add(user)
-
+        try {
+            firestore.collection("users").add(user)
+        } catch (e: Exception) {
+            Log.e("Error", "createUser: Error adding user to Firestore", e)
+        }
     }
 
     private fun validateRegistrationInput(

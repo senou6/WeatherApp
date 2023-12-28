@@ -5,23 +5,33 @@ enum class WeatherScreens {
     HomeScreen,
     LoginScreen,
     RegisterScreen,
-    SettingsScreen,
     FavoriteLocationsScreen,
-    SearchScreen;
-    companion object{
-        fun fromRoute(route : String?) : WeatherScreens
-            = when(route?.substringBefore("/")){
+    SearchScreen,
+    SearchedLocationScreen;
+
+    fun withArgs(vararg args: String): String {
+        return buildString {
+            append(name)
+            args.forEach { arg ->
+                append("/$arg")
+            }
+        }
+    }
+
+    companion object {
+        fun fromRoute(route: String?): WeatherScreens {
+            val routeWithoutArgs = route?.substringBefore("?")?.substringBefore("/")
+            return when (routeWithoutArgs) {
                 MainScreen.name -> MainScreen
                 FavoriteLocationsScreen.name -> FavoriteLocationsScreen
+                SearchedLocationScreen.name -> SearchedLocationScreen
                 LoginScreen.name -> LoginScreen
                 RegisterScreen.name -> RegisterScreen
-                SearchScreen.name -> RegisterScreen
+                SearchScreen.name -> SearchScreen
                 HomeScreen.name -> HomeScreen
-                SettingsScreen.name -> SettingsScreen
                 null -> MainScreen
                 else -> throw IllegalArgumentException("Route $route is not recognized")
             }
-
-
+        }
     }
 }

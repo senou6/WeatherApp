@@ -6,11 +6,17 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class LoginViewModel : ViewModel() {
 
-    private val firebaseAuth: FirebaseAuth = FirebaseAuth.getInstance()
+@HiltViewModel
+class LoginViewModel @Inject constructor(
+    private val firebaseAuth: FirebaseAuth,
+) : ViewModel() {
+
     var isLoading by mutableStateOf(false)
         private set
 

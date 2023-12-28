@@ -1,12 +1,24 @@
 package pt.pedro.ccti.weatherapp.components
 
 import android.annotation.SuppressLint
+import android.util.Log
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.with
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,8 +28,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.BottomNavigation
-import androidx.compose.material.BottomNavigationItem
 import androidx.compose.material.DropdownMenu
 import androidx.compose.material.DropdownMenuItem
 import androidx.compose.material.OutlinedTextField
@@ -25,11 +35,11 @@ import androidx.compose.material.Scaffold
 import androidx.compose.material.TextFieldDefaults
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBackIos
-import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Login
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Icon
@@ -60,8 +70,8 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.flow.MutableStateFlow
 import pt.pedro.ccti.weatherapp.R
-import pt.pedro.ccti.weatherapp.data.BottomNavItem
 import pt.pedro.ccti.weatherapp.model.Weather.Weather
 import pt.pedro.ccti.weatherapp.navigation.WeatherScreens
 import pt.pedro.ccti.weatherapp.utils.epochToWeekDay
@@ -102,11 +112,17 @@ fun UnauthenticatedTopBar(navController: NavController, currentScreen: String, c
 fun AuthenticatedTopBar(navController: NavController, currentScreen: String, content: @Composable () -> Unit){
 
     var expanded by remember { mutableStateOf(false) }
-    val items = if(currentScreen == "FavoriteLocationsScreen") {
-                    listOf("Home", "Logout")
-                }else {
-                    listOf("Favourites", "Logout")
-                }
+    val items = when (currentScreen) {
+        "FavoriteLocationsScreen" -> {
+            listOf("Home", "Logout")
+        }
+        "HomeScreen" -> {
+            listOf("Favorites", "Logout")
+        }
+        else -> {
+            listOf("Home","Favorites", "Logout")
+        }
+    }
 
     Row(
         modifier = Modifier
@@ -135,15 +151,19 @@ fun AuthenticatedTopBar(navController: NavController, currentScreen: String, con
                     ) {
                     items.forEachIndexed { index, item ->
                         DropdownMenuItem(onClick = {
-                            if (index == 0) {
+                            if (item == "Favorites") {
+                                Log.d("TAG", "AuthenticatedTopBar: $item")
                                 expanded = false
-                                if (currentScreen == "FavoriteLocationsScreen") {
-                                    navController.navigate(WeatherScreens.HomeScreen.name)
-                                } else {
-                                    navController.navigate(WeatherScreens.FavoriteLocationsScreen.name)
-                                }
+                                navController.navigate(WeatherScreens.FavoriteLocationsScreen.name)
 
-                            } else {
+
+                            } else if(item == "Home" ) {
+                                Log.d("TAG", "AuthenticatedTopBar: $item")
+                                expanded = false
+                                navController.navigate(WeatherScreens.HomeScreen.name)
+
+
+                            }else{
                                 expanded = false
                                 FirebaseAuth.getInstance().signOut().run {
                                     navController.navigate(WeatherScreens.MainScreen.name) {
@@ -178,15 +198,15 @@ fun UserScaffold(loggedIn: Boolean, navController: NavController, currentScreen:
                 UnauthenticatedTopBar(navController, currentScreen, content)
             }
         },
-        backgroundColor = Color(0xFF9A7CD1)
+        backgroundColor = MaterialTheme.colorScheme.primary,
     ) {
         Box(
             modifier = Modifier
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            Color(0xFF9A7CD1),
-                            Color(0xFFB39DDB)
+                            MaterialTheme.colorScheme.primary,
+                            MaterialTheme.colorScheme.secondary
                         )
                     )
                 )
@@ -196,6 +216,7 @@ fun UserScaffold(loggedIn: Boolean, navController: NavController, currentScreen:
         }
     }
 }
+
 
 @Composable
 fun FrontImage(){
@@ -303,7 +324,7 @@ fun Loading() {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        androidx.compose.material3.CircularProgressIndicator()
+        androidx.compose.material3.CircularProgressIndicator(color = Color.White)
     }
 }
 
@@ -312,7 +333,6 @@ fun Loading() {
 fun WeatherScaffold(
     weather: Weather,
     navController: NavController,
-    loggedIn : Boolean
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -326,15 +346,20 @@ fun WeatherScaffold(
 
 }
 
+@OptIn(ExperimentalAnimationApi::class)
+@SuppressLint("StateFlowValueCalledInComposition")
 @Composable
 fun CurrentWeather(weather: Weather){
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.fillMaxHeight(0.5f)
     ) {
-        Text(text = "${weather.location.name}, ${weather.location.country}", style = MaterialTheme.typography.headlineSmall, color = Color.White)
+
+
+        Text(text = "${weather.location.name},", style = MaterialTheme.typography.headlineSmall, color = Color.White)
+        Text(text = weather.location.country, style = MaterialTheme.typography.headlineSmall, color = Color.White)
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier
-            .padding(top = 100.dp)) {
+            .padding(top = 25.dp)) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(text = "${weather.current.temp_c}ºC", fontSize = 75.sp, textAlign = TextAlign.Center, color = Color.White)
             }

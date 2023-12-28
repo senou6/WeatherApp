@@ -5,7 +5,10 @@ import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -16,35 +19,55 @@ import javax.inject.Inject
 
 
 @HiltViewModel
-class HomeViewModel @Inject constructor(private val repository: WeatherRepository) : ViewModel(){
+class HomeViewModel @Inject constructor(
+    private val repository: WeatherRepository,
+    private val firebaseAuth: FirebaseAuth,
+    private val firestore: FirebaseFirestore
+) : ViewModel() {
 
-    private val firebaseAuth: FirebaseAuth = FirebaseAuth.getInstance()
-    private val _userPrincipalLocation = MutableStateFlow<String?>(null)
-    val userPrincipalLocation = _userPrincipalLocation.asStateFlow()
+    private val _weatherData = MutableStateFlow<List<DataOrException<Weather, Boolean, Exception>?>>(emptyList())
+    val weatherData: StateFlow<List<DataOrException<Weather, Boolean, Exception>?>> = _weatherData.asStateFlow()
 
+    private val _hasFavoriteLocation = MutableStateFlow(true)
+    val hasFavoriteLocation: StateFlow<Boolean> = _hasFavoriteLocation.asStateFlow()
 
-    fun fetchUserFavouriteLocation() {
+    fun fetchUserPrincipalLocation() {
         viewModelScope.launch {
+            _weatherData.value = emptyList()
             val userId = firebaseAuth.currentUser?.uid ?: return@launch
             try {
-                val querySnapshot = FirebaseFirestore.getInstance()
+                val querySnapshot = firestore
                     .collection("users")
                     .whereEqualTo("user_id", userId)
                     .get()
                     .await()
 
-                val document = querySnapshot.documents.firstOrNull() // Assuming there's only one document per user
+                val document = querySnapshot.documents.firstOrNull()
                 if (document != null) {
-                    _userPrincipalLocation.value = document.getString("principal_location")
+                    val favoriteLocations = document.get("favorite_locations") as? List<String>
+                    if (!favoriteLocations.isNullOrEmpty()) {
+                        _hasFavoriteLocation.value = true
+                        getWeatherDataForLocation(favoriteLocations)
+                    }
+                } else {
+                    _hasFavoriteLocation.value = false
                 }
             } catch (e: Exception) {
+                _hasFavoriteLocation.value = false
                 Log.e("TAG", "Error fetching user favorite location", e)
             }
         }
     }
 
-    suspend fun getWeatherData(): DataOrException<Weather, Boolean, Exception> {
-            return repository.getWeather(cityQuery = userPrincipalLocation.value!!)
-    }
+    private suspend fun getWeatherDataForLocation(locations: List<String>) {
+        viewModelScope.launch {
+            val weatherDataResults = locations.map { location ->
+                async { repository.getWeather(cityQuery = location) }
+            }.awaitAll()
 
+            _weatherData.value = weatherDataResults
+        }
+    }
 }
+
+
