@@ -10,7 +10,6 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.with
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -18,13 +17,16 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -358,13 +360,29 @@ fun CurrentWeather(weather: Weather){
 
         Text(text = "${weather.location.name},", style = MaterialTheme.typography.headlineSmall, color = Color.White)
         Text(text = weather.location.country, style = MaterialTheme.typography.headlineSmall, color = Color.White)
+
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier
             .padding(top = 25.dp)) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(text = "${weather.current.temp_c}ºC", fontSize = 75.sp, textAlign = TextAlign.Center, color = Color.White)
+                Image(
+                    painter = rememberAsyncImagePainter("https://${weather.forecast.forecastday[0].day.condition.icon}"),
+                    contentDescription = "Weather Icon",
+                    modifier = Modifier.size(125.dp)
+                )
             }
+            Spacer(modifier = Modifier.height(5.dp))
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(text = "${weather.current.temp_c}ºC", fontSize = 25.sp, textAlign = TextAlign.Center, color = Color.White)
+            }
+            Spacer(modifier = Modifier.height(5.dp))
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(text = "${weather.current.condition.text}, ${weather.forecast.forecastday[0].day.mintemp_c.toInt()}º/${weather.forecast.forecastday[0].day.maxtemp_c.toInt()}º",textAlign = TextAlign.Center, color = Color.White)
+            }
+            Spacer(modifier = Modifier.height(5.dp))
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(text = "${weather.current.humidity}%\uD83D\uDCA7", textAlign = TextAlign.Center, color = Color.White)
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(text = "${weather.current.wind_kph} kpm ༄", textAlign = TextAlign.Center, color = Color.White)
             }
         }
     }
