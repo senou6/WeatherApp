@@ -1,9 +1,9 @@
 *.iml
 .gradle
-/app/src/main/java/pt/pedro/ccti/weatherapp/components/local.properties
+/local.properties
 .DS_Store
 /build
 /captures
 .externalNativeBuild
 .cxx
-app/src/main/java/pt/pedro/ccti/weatherapp/components/local.properties
+local.properties
